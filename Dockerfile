@@ -13,3 +13,7 @@ COPY speech_recognition.py .
 ENV HF_HOME="/huggingface/"
 ENTRYPOINT ["python", "speech_recognition.py"]
 
+
+# In Dockerfile for the GPIO setup
+ENV JETSON_MODEL_NAME=JETSON_ORIN_NANO
+

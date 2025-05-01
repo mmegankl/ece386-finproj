@@ -1,0 +1,6 @@
+transformers==4.49.0 
+accelerate==1.5.2 
+sounddevice
+ollama
+Jetson.GPIO
+requests

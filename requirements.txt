@@ -4,3 +4,4 @@ sounddevice
 ollama
 Jetson.GPIO
 requests
+os

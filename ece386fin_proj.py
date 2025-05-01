@@ -5,11 +5,14 @@ import numpy as np
 import numpy.typing as npt
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, Pipeline, pipeline
 from ollama import chat
+from ollama import Client
 from typing import Optional
 import Jetson.GPIO as GPIO
 import requests
+import os
 
 
+# copied directly from ICE3
 def build_whisper_pipeline(
     model_id: str, torch_dtype: torch.dtype, device: str
 ) -> Pipeline:
@@ -34,7 +37,7 @@ def build_whisper_pipeline(
     return pipe
 
 
-# 4 second recording
+# 4 second recording; subject to change
 def record_audio(duration_seconds: int = 4) -> npt.NDArray:
     """Record duration_seconds of audio from default microphone.
     Return a single channel numpy array."""
@@ -47,13 +50,75 @@ def record_audio(duration_seconds: int = 4) -> npt.NDArray:
     # Model expects single axis
     return np.squeeze(audio, axis=1)
 
+# LLM integration
+LLM_MODEL: str = "gemma3:1b"  # Change this to be the model you want
+client: Client = Client(
+    host="http://localhost:11434"  # Change this to be the URL of your LLM
+)
 
-def llm_processor(transcribed_text):
-    weather_input = 0
-    return weather_input
+few_shot_prompt: str = """
+Given a weather query, return a formatted string that includes the location for the wttr.in API. This API takes the following formats:
+
+1. Cities
+2. 3-letter airport codes
+
+If a popular attraction/geographical location is mentioned, include a tilde ('~') before the word. 
+Anytime the city is more than one word, replace the spaces between the words with '+' and capitalize all words. 
+When requesting the weather at or near an airport mentioned, output the three-letter airport code in all lowercase.
+
+Examples:
+
+Input: What is the weather in Vegas?
+Output: Las+Vegas
+
+Input: What's the weather near the Eiffel Tower?
+Output: ~Eiffel+Tower
+
+Input: Please give me the weather at Honolulu International Airport.
+Output: hnl
+
+Input: Please give me the weather at the airport in San Franscisco.
+Output: sfo
+
+Input: I'm at JFK right now. What's the weather?
+Output: New+York+City
+
+Input: What's the weather in New York City?
+Output: New+York+City
+
+Input: Forecast for Rio Rancho?
+Output: Rio+Rancho
 
 
-def get_weather(weather_input):
+Please note how New York City and Las Vegas are each two or more words, so the output includes a '+' where the space between the words should be.
+These two examples mentioned above are not the only instances where a '+' is necessary. This rule applies to ANY city that is more than one word.
+Therefore, do not give me an output with any spaces. There are '+' instead of spaces in the output.
+
+"""
+
+# TODO: define llm_parse_for_wttr()
+def llm_parse_for_wttr(prompt: str) -> str:
+    response = client.chat(
+        messages= [
+            {
+                "role": "system", 
+                "content": few_shot_prompt,
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+        model=LLM_MODEL,
+    )
+
+    
+    output = response["message"]["content"].strip() #used AI for this line
+
+    return output
+
+
+def get_weather(weather_input) -> str:
     # call on wttr.in
     url = "https://wtter.in/{weather_input}"
     response = requests.get(url)
@@ -62,9 +127,6 @@ def get_weather(weather_input):
     else:
         return None
 
-
-def print_weather(text, weather_input):
-    print(f"The weather in {weather_input} is:")
 
 
 if __name__ == "__main__":
@@ -90,6 +152,7 @@ if __name__ == "__main__":
 
     # wait for GPIO rising edge
     while True:
+        # audio recording and transcription
         GPIO.wait_for_edge(my_pin, GPIO.RISING)
         print("UP!")
 
@@ -102,3 +165,10 @@ if __name__ == "__main__":
         print("Done")
 
         print(speech)
+
+        # LLM
+        place = llm_parse_for_wttr(speech) 
+        output = get_weather(place)
+
+        # output
+        os.system(place)

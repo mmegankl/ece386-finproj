@@ -17,3 +17,5 @@ ENTRYPOINT ["python", "speech_recognition.py"]
 # In Dockerfile for the GPIO setup
 ENV JETSON_MODEL_NAME=JETSON_ORIN_NANO
 
+# In Dockerfile
+ENV JETSON_MODEL_NAME=JETSON_ORIN_NANO

@@ -37,8 +37,8 @@ def build_whisper_pipeline(
     return pipe
 
 
-# 4 second recording; subject to change
-def record_audio(duration_seconds: int = 4) -> npt.NDArray:
+# 10 second recording; subject to change
+def record_audio(duration_seconds: int = 10) -> npt.NDArray:
     """Record duration_seconds of audio from default microphone.
     Return a single channel numpy array."""
     sample_rate = 16000  # Hz
@@ -51,9 +51,9 @@ def record_audio(duration_seconds: int = 4) -> npt.NDArray:
     return np.squeeze(audio, axis=1)
 
 # LLM integration
-LLM_MODEL: str = "gemma3:1b"  # Change this to be the model you want
+LLM_MODEL: str = "gemma3:27b"  # Change this to be the model you want
 client: Client = Client(
-    host="http://localhost:11434"  # Change this to be the URL of your LLM
+    host="http://ai.dfec.xyz:11434"  # Change this to be the URL of your LLM
 )
 
 few_shot_prompt: str = """
@@ -98,6 +98,9 @@ Therefore, do not give me an output with any spaces. There are '+' instead of sp
 
 # TODO: define llm_parse_for_wttr()
 def llm_parse_for_wttr(prompt: str) -> str:
+
+    prompt = prompt["text"]
+    print(prompt)
     response = client.chat(
         messages= [
             {
@@ -112,21 +115,10 @@ def llm_parse_for_wttr(prompt: str) -> str:
         model=LLM_MODEL,
     )
 
-    
+    print(response)
     output = response["message"]["content"].strip() #used AI for this line
 
     return output
-
-
-def get_weather(weather_input) -> str:
-    # call on wttr.in
-    url = "https://wtter.in/{weather_input}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.text
-    else:
-        return None
-
 
 
 if __name__ == "__main__":
@@ -151,24 +143,28 @@ if __name__ == "__main__":
     print("Done")
 
     # wait for GPIO rising edge
-    while True:
-        # audio recording and transcription
-        GPIO.wait_for_edge(my_pin, GPIO.RISING)
-        print("UP!")
+    #while True:
+    # audio recording and transcription
+    GPIO.wait_for_edge(my_pin, GPIO.RISING)
+    print("UP!")
 
-        print("Recording...")
-        audio = record_audio()
-        print("Done")
+    print("Recording...")
+    audio = record_audio()
+    print("Done")
 
-        print("Transcribing...")
-        speech = pipe(audio)
-        print("Done")
+    print("Transcribing...")
+    speech = pipe(audio)
+    print("Done")
 
-        print(speech)
+    print(speech)
 
-        # LLM
-        place = llm_parse_for_wttr(speech) 
-        output = get_weather(place)
+    # LLM
+    place = llm_parse_for_wttr(speech) 
+    print(place)
+    
+    url = f"curl wttr.in/{place}"
+    print(url)
 
-        # output
-        os.system(place)
+    # output
+    os.system(url)
+

@@ -6,12 +6,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libportaudio2 \
     && rm -rf /var/lib/apt/lists/ && apt clean
 
-RUN docker run -d \
-    -v ollama:/root/.ollama/ \
-    --name ollama \
-    -p 11434:11434 \
-    ollama/ollama serve
-
 COPY requirements.txt .
 
 RUN pip install --upgrade --no-cache-dir pip && \ 

@@ -50,6 +50,7 @@ def record_audio(duration_seconds: int = 10) -> npt.NDArray:
     # Model expects single axis
     return np.squeeze(audio, axis=1)
 
+
 # LLM integration
 LLM_MODEL: str = "gemma3:27b"  # Change this to be the model you want
 client: Client = Client(
@@ -96,27 +97,28 @@ Therefore, do not give me an output with any spaces. There are '+' instead of sp
 
 """
 
+
 # TODO: define llm_parse_for_wttr()
 def llm_parse_for_wttr(prompt: str) -> str:
 
     prompt = prompt["text"]
     print(prompt)
     response = client.chat(
-        messages= [
+        messages=[
             {
-                "role": "system", 
+                "role": "system",
                 "content": few_shot_prompt,
             },
             {
                 "role": "user",
                 "content": prompt,
-            }
+            },
         ],
         model=LLM_MODEL,
     )
 
     print(response)
-    output = response["message"]["content"].strip() #used AI for this line
+    output = response["message"]["content"].strip()  # used AI for this line
 
     return output
 
@@ -143,7 +145,7 @@ if __name__ == "__main__":
     print("Done")
 
     # wait for GPIO rising edge
-    #while True:
+    # while True:
     # audio recording and transcription
     GPIO.wait_for_edge(my_pin, GPIO.RISING)
     print("UP!")
@@ -159,12 +161,11 @@ if __name__ == "__main__":
     print(speech)
 
     # LLM
-    place = llm_parse_for_wttr(speech) 
+    place = llm_parse_for_wttr(speech)
     print(place)
-    
+
     url = f"curl wttr.in/{place}"
     print(url)
 
     # output
     os.system(url)
-
